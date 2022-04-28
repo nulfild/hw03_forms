@@ -59,6 +59,7 @@ def post_detail(request, post_id):
 
     return render(request, 'posts/post_detail.html', context)
 
+
 @login_required
 def post_create(request):
     if request.method == 'POST':
@@ -74,6 +75,7 @@ def post_create(request):
 
     form = PostForm()
     return render(request, 'posts/create_post.html', {'form': form})
+
 
 @login_required
 def post_edit(request, post_id):
