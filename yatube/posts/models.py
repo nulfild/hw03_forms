@@ -6,7 +6,7 @@ User = get_user_model()
 
 class Group(models.Model):
     title = models.CharField('Название группы', max_length=200)
-    slug = models.SlugField('Уникальная ссылка', unique=True)
+    slug = models.SlugField('Идентификатор группы', unique=True)
     description = models.TextField('Описание группы')
 
     class Meta:
@@ -32,7 +32,7 @@ class Post(models.Model):
         null=True,
         on_delete=models.SET_NULL,
         verbose_name='Сообщество (опционально)',
-        related_name='group_posts'
+        related_name='posts'
     )
 
     class Meta:
@@ -41,4 +41,8 @@ class Post(models.Model):
         ordering = ('-pub_date', )
 
     def __str__(self) -> str:
-        return self.text
+        return (
+            f'{self.text[:30]}'
+            f'Автор: {self.author}'
+            f'Группа: {self.group}'
+        )

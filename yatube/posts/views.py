@@ -1,11 +1,9 @@
 from django.shortcuts import get_object_or_404, redirect, render
 from django.core.paginator import Paginator
-from .models import Group, Post
-from django.contrib.auth import get_user_model
-from .forms import PostForm
 from django.contrib.auth.decorators import login_required
 
-User = get_user_model()
+from .models import Group, Post, User
+from .forms import PostForm
 
 
 def index(request):
@@ -22,7 +20,7 @@ def index(request):
 
 def group_posts(request, slug):
     group = get_object_or_404(Group, slug=slug)
-    posts = group.group_posts.all()
+    posts = group.posts.all()
     paginator = Paginator(posts, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
@@ -49,12 +47,10 @@ def profile(request, username):
 
 
 def post_detail(request, post_id):
-    post = Post.objects.get(id=post_id)
-    short_title = post.text[:30]
+    post = get_object_or_404(Post, id=post_id)
 
     context = {
         'post': post,
-        'short_title': short_title,
     }
 
     return render(request, 'posts/post_detail.html', context)
@@ -62,36 +58,32 @@ def post_detail(request, post_id):
 
 @login_required
 def post_create(request):
-    if request.method == 'POST':
-        form = PostForm(request.POST)
+    form = PostForm(request.POST or None)
 
-        if form.is_valid():
-            post = form.save(commit=False)
-            post.author = request.user
-            post.save()
-            return redirect('posts:profile', post.author.username)
-
+    if not form.is_valid():
         return render(request, 'posts/create_post.html', {'form': form})
 
-    form = PostForm()
-    return render(request, 'posts/create_post.html', {'form': form})
+    post = form.save(commit=False)
+    post.author = request.user
+    post.save()
+    return redirect('posts:profile', post.author.username)
 
 
 @login_required
 def post_edit(request, post_id):
-    post = Post.objects.get(id=post_id)
-    form = PostForm(instance=post)
-    is_edit = True
+    post = get_object_or_404(Post, id=post_id)
+
+    if request.user != post.author:
+        return redirect('posts:post_detail', post.pk)
+
+    form = PostForm(request.POST or None, instance=post)
     context = {
         'form': form,
         'post': post,
-        'is_edit': is_edit,
+        'is_edit': True,
     }
-    if request.user == post.author:
-        if request.method == 'POST':
-            form = PostForm(request.POST, instance=post)
-            if form.is_valid():
-                form.save()
-            return redirect('posts:post_detail', post.pk)
+    if not form.is_valid():
         return render(request, 'posts/create_post.html', context)
+
+    form.save()
     return redirect('posts:post_detail', post.pk)
